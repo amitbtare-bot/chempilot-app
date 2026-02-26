@@ -1,5 +1,16 @@
 import streamlit as st
-import google.generativeai as genai
+st.set_page_config(page_title="ChemPilot SaaS", layout="wide")
+# Initialize global data storage
+if 'project_data' not in st.session_state:
+    st.session_state.project_data = {
+        "chemical": "",
+        "capacity": 0,
+        "math_result": "",
+        "approved": False
+    }
+
+st.title("🚢 ChemPilot Landing")
+st.write("Welcome to the Command Center. Use the sidebar to navigate.")import google.generativeai as genai
 
 # --- CONFIGURATION & SECRETS ---
 # This looks for your key in the Streamlit Cloud "Secrets" vault
@@ -82,4 +93,5 @@ elif st.session_state.step == 3:
 st.sidebar.markdown("### Vendor Marketplace")
 if st.sidebar.button("Register as a Supplier"):
     st.sidebar.info("Vendor registration portal coming soon!")
+
 
