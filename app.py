@@ -1,5 +1,22 @@
 import streamlit as st
 import google.generativeai as genai
+import time
+
+@st.cache_data(show_spinner=False)
+def run_audit_safe(chem, cap, loc):
+    model = genai.GenerativeModel('gemini-2.0-flash')
+    # Exponential Backoff Logic
+    for delay in [1, 5, 20, 60]: # Wait 1s, then 5s, then 20s...
+        try:
+            response = model.generate_content(f"Technical audit for {chem}...")
+            return response.text
+        except Exception as e:
+            if "429" in str(e):
+                st.warning(f"Engine is busy. Retrying in {delay} seconds...")
+                time.sleep(delay)
+            else:
+                return f"Unexpected Error: {e}"
+    return "The engine is currently overloaded. Please try again in a few minutes."
 
 # --- GLOBAL CONFIG & UI ---
 st.set_page_config(page_title="ChemPilot Pro", layout="wide", page_icon="🧪")
@@ -59,3 +76,4 @@ if st.session_state.project["audit_report"]:
     st.markdown(st.session_state.project["audit_report"])
 else:
     st.info("👈 Enter project parameters in the sidebar to generate the Investment Audit.")
+
