@@ -1,53 +1,84 @@
 import streamlit as st
 import google.generativeai as genai
 
-# 1. SETUP - Replace with your actual API Key
-genai.configure(api_key="AIzaSyDRDdCDv13ydkIWQZHOo2pFAboJTRqK38g")
-model = genai.GenerativeModel('gemini-1.5-flash')
+# --- CONFIGURATION & SECRETS ---
+# This looks for your key in the Streamlit Cloud "Secrets" vault
+try:
+    API_KEY = st.secrets["GEMINI_API_KEY"]
+    genai.configure(api_key=API_KEY)
+    model = genai.GenerativeModel('gemini-1.5-flash')
+except Exception:
+    st.error("❌ API Key not found! Please add 'GEMINI_API_KEY' to your Streamlit Secrets.")
+    st.stop()
 
-st.set_page_config(page_title="ChemPilot SaaS", layout="centered")
+# --- UI SETUP ---
+st.set_page_config(page_title="ChemPilot SaaS", page_icon="🚢", layout="centered")
 st.title("🚢 ChemPilot: Engineering Intelligence")
-st.subheader("Institutional-Grade Chemical Project Reports")
+st.markdown("---")
 
-# Initialize "Memory" for the steps
+# Initialize Session State (Memory)
 if 'step' not in st.session_state:
     st.session_state.step = 1
+if 'math_result' not in st.session_state:
+    st.session_state.math_result = ""
 
-# --- STEP 1: INPUT ---
+# --- STEP 1: PROJECT INPUT ---
 if st.session_state.step == 1:
+    st.subheader("Start New Project")
     with st.form("input_form"):
-        chemical = st.text_input("Chemical Name", placeholder="e.g., Acetic Acid")
-        capacity = st.number_input("Annual Capacity (TPA)", min_value=1000, value=100000)
-        submitted = st.form_submit_button("Generate Engineering Math")
-        
-        if submitted:
-            with st.spinner("Gemini is researching and calculating..."):
-                # Hidden background prompt
-                prompt = f"Research {chemical} production. Use Python to calculate Material Balance and Utilities for {capacity} TPA. Output only a summary table."
-                response = model.generate_content(prompt)
-                st.session_state.math_result = response.text
-                st.session_state.step = 2
-                st.rerun()
+        chemical = st.text_input("Target Chemical", placeholder="e.g., Acetic Acid")
+        capacity = st.number_input("Annual Capacity (TPA)", min_value=1000, value=100000, step=1000)
+        submit = st.form_submit_button("Generate Engineering Math")
 
-# --- STEP 2: APPROVAL ---
+        if submit and chemical:
+            with st.spinner(f"🔍 Researching {chemical} process and calculating math..."):
+                try:
+                    # System instruction hidden from the user
+                    prompt = f"""
+                    Act as a Chemical Engineering Engine. 
+                    Calculate the Material Balance and Utilities for a {chemical} plant at {capacity} TPA. 
+                    1. Use Python (Code Execution) for stoichiometry and MW calculations.
+                    2. Output a clean table with kg/hr for reactants and kW/Steam for utilities.
+                    """
+                    response = model.generate_content(prompt)
+                    st.session_state.math_result = response.text
+                    st.session_state.step = 2
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Computation Error: {str(e)}")
+
+# --- STEP 2: EVIDENCE REVIEW ---
 elif st.session_state.step == 2:
-    st.write("### 📊 Engineering Evidence Review")
-    st.info("Please review the deterministic math below before we generate the full narrative.")
-    st.write(st.session_state.math_result)
+    st.subheader("📊 Phase 1: Engineering Evidence Review")
+    st.info("Verify the deterministic math below before generating the full DPR.")
+    
+    st.markdown(st.session_state.math_result)
     
     col1, col2 = st.columns(2)
-    if col1.button("✅ Approve & Write Full DPR"):
-        st.session_state.step = 3
-        st.rerun()
-    if col2.button("❌ Modify Inputs"):
-        st.session_state.step = 1
-        st.rerun()
+    with col1:
+        if st.button("✅ Approve & Write Narrative"):
+            st.session_state.step = 3
+            st.rerun()
+    with col2:
+        if st.button("❌ Modify Inputs"):
+            st.session_state.step = 1
+            st.rerun()
 
-# --- STEP 3: FINAL OUTPUT ---
+# --- STEP 3: NARRATIVE & VENDOR MATCHING ---
 elif st.session_state.step == 3:
-    st.success("Math Approved. Generating Institutional-Grade Narrative...")
-    st.write("This is where your full report will appear. In the SaaS version, this would be a PDF download.")
-    if st.button("Start New Project"):
+    st.subheader("📄 Phase 2: Report Finalization")
+    st.success("Math Approved! Narrative and Vendor suggestions are being compiled...")
+    
+    st.write("---")
+    st.write("### Recommended Suppliers (Marketplace)")
+    st.write("* **Vendor A:** Reactor Specialist (Registered)")
+    st.write("* **Vendor B:** Industrial Boiler Systems (Verified)")
+    
+    if st.button("🔄 Start New Calculation"):
         st.session_state.step = 1
-
         st.rerun()
+
+# --- VENDOR SIDEBAR ---
+st.sidebar.markdown("### Vendor Marketplace")
+if st.sidebar.button("Register as a Supplier"):
+    st.sidebar.info("Vendor registration portal coming soon!")
