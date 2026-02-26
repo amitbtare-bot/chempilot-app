@@ -1,100 +1,61 @@
 import streamlit as st
 import google.generativeai as genai
-import time
 
-# --- CACHED ENGINE FUNCTION ---
-@st.cache_data(show_spinner=False)
-def call_gemini_with_retry(prompt):
-    model = genai.GenerativeModel('gemini-2.0-flash')
-    max_retries = 3
-    for i in range(max_retries):
-        try:
-            response = model.generate_content(prompt)
-            return response.text
-        except Exception as e:
-            if "429" in str(e):
-                time.sleep(10) # Wait 10 seconds and try again automatically
-                continue
-            else:
-                raise e
-    return "The system is currently busy due to high demand. Please wait 60 seconds."
+# --- GLOBAL CONFIG & UI ---
+st.set_page_config(page_title="ChemPilot Pro", layout="wide", page_icon="🧪")
 
-# --- MAIN EXECUTION ---
-if run_btn and chemical_query and exact_loc:
-    # ... (Your loader code here)
-    
-    # Updated Prompt to be more "Token-Efficient"
-    optimized_prompt = f"Direct technical audit for {chemical_query}, {user_cap} TPA at {exact_loc}. Data points: 2026 MES, logistics cost per tonne, CAPEX/OPEX (INR Cr), ROI%, Payback, Market Gap India, NFPA safety."
-    
-    try:
-        report_text = call_gemini_with_retry(optimized_prompt)
-        st.markdown(report_text)
-    except Exception as e:
-        st.error(f"Quota issue. Let's wait a minute and try again.")
+# UX/UI: Glassmorphism & Background
+st.markdown("""
+    <style>
+    .stApp { background: linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)), 
+             url("https://www.transparenttextures.com/patterns/carbon-fibre.png");
+             background-size: cover; color: #f0f2f6; }
+    div[data-testid="stMetric"] {
+        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+        backdrop-filter: blur(10px); border-radius: 15px; padding: 15px;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-# --- 1. SETUP & THEMES ---
-st.set_page_config(page_title="ChemPilot TEL SaaS", layout="wide", page_icon="🧪")
+# --- INITIALIZE DATA ---
+if 'project' not in st.session_state:
+    st.session_state.project = {"chem": [], "cap": 100000, "loc": "", "audit_report": None}
 
-# 2026 Knowledge Base for "Smart Suggestions" (Optional, doesn't limit search)
-SUGGESTIONS = ["Ethanol (64-17-5)", "Acetic Acid (64-19-7)", "Methanol (67-56-1)", "Ammonia (7664-41-7)"]
-
-# --- 2. CUSTOM UI: DYNAMIC BACKGROUND & SPINNER ---
-def inject_ui_styles():
-    st.markdown("""
-        <style>
-        .stApp { background: linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)), 
-                 url("https://www.shutterstock.com/shutterstock/videos/1069542037/thumb/1.jpg");
-                 background-size: cover; color: white; }
-        @keyframes distill { 0% { height: 10%; } 50% { height: 90%; } 100% { height: 10%; } }
-        .beaker-loader { width: 40px; height: 50px; border: 2px solid #00f2ff; border-radius: 0 0 15px 15px; position: relative; margin: auto; }
-        .liquid { width: 100%; background: #00f2ff; position: absolute; bottom: 0; animation: distill 2s infinite; }
-        </style>
-    """, unsafe_allow_html=True)
-
-# --- 3. THE ENGINE ---
-inject_ui_styles()
-st.title("🚢 ChemPilot: Universal TEL Engine")
+# --- SEARCH ENGINE ---
+st.title("🚢 ChemPilot: Techno-Economic & Logistics Engine")
 
 with st.sidebar:
-    st.header("Project Parameters")
-    # OPEN SEARCH: User can type anything here.
-    chemical_query = st.selectbox("Search or Type Chemical/CAS", options=SUGGESTIONS + ["Other (Type Below)"], index=None)
-    if chemical_query == "Other (Type Below)":
-        chemical_query = st.text_input("Enter Manual Name or CAS")
+    st.header("Project Initiation")
+    chems = st.multiselect("Search Chemicals (Suggestive)", 
+                          options=["Ethanol (64-17-5)", "Methanol (67-56-1)", "Acetic Acid (64-19-7)", "Ammonia (7664-41-7)"],
+                          accept_new_options=True)
+    cap = st.number_input("Annual Capacity (TPA)", value=100000)
+    loc = st.text_input("Exact Location", placeholder="e.g. Dahej, Gujarat")
     
-    user_cap = st.number_input("Annual Capacity (TPA)", min_value=1000, value=100000)
-    exact_loc = st.text_input("Exact Plant Location", placeholder="e.g. Dahej, Gujarat")
-    
-    run_btn = st.button("Generate Comprehensive Audit", type="primary")
+    if st.button("Generate Full Audit", type="primary"):
+        if chems and loc:
+            try:
+                genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+                model = genai.GenerativeModel('gemini-2.0-flash')
+                
+                # THE CONSOLIDATED PROMPT (Logistics, Scale, Financials, Market)
+                prompt = f"""
+                Analyze {', '.join(chems)} at {cap} TPA in {loc}, India (2026 Context).
+                Include: 1. Scale feasibility (MES). 2. Logistics landing cost impact. 
+                3. Financials (CAPEX/OPEX INR Cr, ROI, Payback). 4. 2026 India Market Survey.
+                5. Safety (NFPA 704 & CAS). Provide data in Markdown tables.
+                """
+                response = model.generate_content(prompt)
+                st.session_state.project.update({"chem": chems, "cap": cap, "loc": loc, "audit_report": response.text})
+                st.success("Project Data Distilled!")
+            except Exception as e:
+                st.error(f"Engine Error: {str(e)}")
+        else:
+            st.warning("Please provide Chemical and Location.")
 
-# --- 4. EXECUTION ---
-if run_btn and chemical_query and exact_loc:
-    placeholder = st.empty()
-    with placeholder.container():
-        st.markdown('<div class="beaker-loader"><div class="liquid"></div></div>', unsafe_allow_html=True)
-        st.write("Distilling Market Data, Logistics, and Financials...")
-        
-    try:
-        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        model = genai.GenerativeModel('gemini-2.0-flash')
-        
-        prompt = f"""
-        Act as a 2026 Industrial Investment Advisor. Analyze {chemical_query} at {user_cap} TPA in {exact_loc}.
-        INCLUDE ALL FEATURES:
-        1. VALIDATE CAS: Find the correct CAS and confirm if {user_cap} TPA meets the Indian Minimum Economic Scale (MES).
-        2. LOGISTICS: Calculate Landing Cost impact using distance to nearest Indian port/rail-head. 
-        3. FINANCIALS: Est CAPEX/OPEX (INR Cr), Payback, and ROI.
-        4. MARKET: 2026 Demand-Supply gap in India and key competitors.
-        5. SAFETY: NFPA 704 & GHS data.
-        """
-        response = model.generate_content(prompt)
-        placeholder.empty()
-        
-        # Displaying Results in a Professional Dashboard
-        st.header(f"Investment Audit Report: {chemical_query}")
-        st.markdown(response.text)
-        
-    except Exception as e:
-        placeholder.empty()
-        st.error(f"Engine Error: {str(e)}")
-
+# --- LANDING DISPLAY ---
+if st.session_state.project["audit_report"]:
+    st.header(f"Executive Summary: {', '.join(st.session_state.project['chem'])}")
+    st.markdown(st.session_state.project["audit_report"])
+else:
+    st.info("👈 Enter project parameters in the sidebar to generate the Investment Audit.")
