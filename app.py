@@ -2,7 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 
 # 1. SETUP - Replace with your actual API Key
-genai.configure(api_key="YOUR_GEMINI_API_KEY_HERE")
+genai.configure(api_key="AIzaSyDRDdCDv13ydkIWQZHOo2pFAboJTRqK38g")
 model = genai.GenerativeModel('gemini-1.5-flash')
 
 st.set_page_config(page_title="ChemPilot SaaS", layout="centered")
@@ -49,4 +49,5 @@ elif st.session_state.step == 3:
     st.write("This is where your full report will appear. In the SaaS version, this would be a PDF download.")
     if st.button("Start New Project"):
         st.session_state.step = 1
+
         st.rerun()
