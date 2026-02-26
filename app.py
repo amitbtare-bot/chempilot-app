@@ -6,7 +6,7 @@ import google.generativeai as genai
 try:
     API_KEY = st.secrets["GEMINI_API_KEY"]
     genai.configure(api_key=API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-2.5-flash')
 except Exception:
     st.error("❌ API Key not found! Please add 'GEMINI_API_KEY' to your Streamlit Secrets.")
     st.stop()
@@ -82,3 +82,4 @@ elif st.session_state.step == 3:
 st.sidebar.markdown("### Vendor Marketplace")
 if st.sidebar.button("Register as a Supplier"):
     st.sidebar.info("Vendor registration portal coming soon!")
+
