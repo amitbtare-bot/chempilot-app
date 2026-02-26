@@ -2,6 +2,36 @@ import streamlit as st
 import google.generativeai as genai
 import time
 
+# --- CACHED ENGINE FUNCTION ---
+@st.cache_data(show_spinner=False)
+def call_gemini_with_retry(prompt):
+    model = genai.GenerativeModel('gemini-2.0-flash')
+    max_retries = 3
+    for i in range(max_retries):
+        try:
+            response = model.generate_content(prompt)
+            return response.text
+        except Exception as e:
+            if "429" in str(e):
+                time.sleep(10) # Wait 10 seconds and try again automatically
+                continue
+            else:
+                raise e
+    return "The system is currently busy due to high demand. Please wait 60 seconds."
+
+# --- MAIN EXECUTION ---
+if run_btn and chemical_query and exact_loc:
+    # ... (Your loader code here)
+    
+    # Updated Prompt to be more "Token-Efficient"
+    optimized_prompt = f"Direct technical audit for {chemical_query}, {user_cap} TPA at {exact_loc}. Data points: 2026 MES, logistics cost per tonne, CAPEX/OPEX (INR Cr), ROI%, Payback, Market Gap India, NFPA safety."
+    
+    try:
+        report_text = call_gemini_with_retry(optimized_prompt)
+        st.markdown(report_text)
+    except Exception as e:
+        st.error(f"Quota issue. Let's wait a minute and try again.")
+
 # --- 1. SETUP & THEMES ---
 st.set_page_config(page_title="ChemPilot TEL SaaS", layout="wide", page_icon="🧪")
 
@@ -67,3 +97,4 @@ if run_btn and chemical_query and exact_loc:
     except Exception as e:
         placeholder.empty()
         st.error(f"Engine Error: {str(e)}")
+
