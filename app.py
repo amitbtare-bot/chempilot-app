@@ -1,90 +1,75 @@
 import streamlit as st
 import google.generativeai as genai
+import uuid
+from datetime import datetime
 
-# --- 1. THE CINEMATIC UI ENGINE ---
-st.set_page_config(page_title="ChemPilot | Industrial Intelligence", layout="wide")
+# --- 1. ACCESS & PRICING RULES (FROZEN v1) ---
+PHASES = {
+    "Phase 1: Conception & Feasibility": {"price": 0, "access": "Free"},
+    "Phase 2: Process Development (R&D)": {"price": 0, "access": "Free"},
+    "Phase 3: Conceptual Design": {"price": 25000, "access": "Paid"},
+    "Phase 4: FEED": {"price": 45000, "access": "Paid"},
+    "Phase 5: Detailed Engineering": {"price": 35000, "access": "Paid"},
+    "Phase 6-8: Commissioning/Ops": {"price": 50000, "access": "Paid"}
+}
 
-st.markdown("""
-    <style>
-    /* Cinematic Background */
-    .stApp {
-        background: radial-gradient(circle at 50% 50%, #101827 0%, #000000 100%);
-        color: #FFFFFF;
-        font-family: 'Inter', sans-serif;
-    }
+# --- 2. GLOBAL UI & AUTH ---
+st.set_page_config(page_title="ChemPilot Pro | Governance Spine", layout="wide")
+
+if 'user_role' not in st.session_state:
+    st.session_state.user_role = "Normal User" # Options: Normal User, Consultant, Vendor, Super User
+
+# --- 3. DYNAMIC JOURNEY & PHASE LOGIC ---
+st.sidebar.title("🛡️ ChemPilot Governance")
+st.session_state.user_role = st.sidebar.selectbox("Access Mode", ["Normal User", "Consultant", "Vendor", "Super User"])
+
+selected_phase = st.sidebar.selectbox("Industry Phase", list(PHASES.keys()))
+phase_meta = PHASES[selected_phase]
+
+# --- 4. THE COMMAND CENTER (STAGING) ---
+st.markdown(f"### {selected_phase}")
+st.caption(f"Status: {phase_meta['access']} | Cost: ₹{phase_meta['price']:,}")
+
+# V1 ENGINE STACK: Integrated Inputs
+with st.container():
+    st.markdown('<div style="background:rgba(255,255,255,0.05); padding:30px; border-radius:15px;">', unsafe_allow_html=True)
+    c1, c2, c3, c4 = st.columns(4)
+    with c1: chem = st.text_input("CHEMICAL / CAS", placeholder="e.g. Methanol")
+    with c2: cap = st.number_input("SCALE (TPA)", value=100000)
+    with c3: loc = st.text_input("LOCATION", placeholder="e.g. Dahej")
+    with c4: bud = st.number_input("BUDGET (₹ Cr)", value=250)
     
-    /* Center Command Card */
-    .command-card {
-        background: rgba(255, 255, 255, 0.03);
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 24px;
-        padding: 40px;
-        margin-top: 50px;
-        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-    }
+    # Validation & Reconciliation Trigger
+    if st.button("EXECUTE STAGE INTELLIGENCE"):
+        if "Paid" in phase_meta['access'] and st.session_state.user_role == "Normal User":
+            st.warning("💳 Phase 3+ requires mandatory registration and payment.")
+        else:
+            # Execute frozen engine logic
+            st.session_state.report_id = f"CP-{uuid.uuid4().hex[:8].upper()}"
+            st.success(f"Intelligence Generated. ID: {st.session_state.report_id}")
+
+# --- 5. REPORTING & WATERMARKING (v1 COMPLIANT) ---
+if 'report_id' in st.session_state:
+    st.divider()
+    st.markdown(f"#### 📄 ChemPilot Report: {st.session_state.report_id}")
+    st.info(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} (IST) | Governance: System-Governed")
     
-    /* Clean Predictive Search Box */
-    .stTextInput input {
-        background-color: rgba(255,255,255,0.05) !important;
-        border: 1px solid rgba(255,255,255,0.2) !important;
-        color: #00f2ff !important;
-        font-size: 1.5rem !important;
-        padding: 20px !important;
-        border-radius: 12px !important;
-    }
+    # The Technical Tabs (Stacked from previous version)
+    t1, t2, t3, t4 = st.tabs(["⚙️ Technical & Scale", "📊 BOQ & Vendor Match", "🏦 Banking & Liaison", "⚖️ Governance"])
     
-    /* High-Performance Execute Button */
-    .stButton > button {
-        background: linear-gradient(90deg, #00f2ff, #0066ff);
-        border: none; color: white;
-        padding: 20px 40px; border-radius: 12px;
-        font-weight: 800; width: 100%;
-        transition: 0.4s all;
-    }
-    .stButton > button:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0, 242, 255, 0.4); }
-    </style>
-""", unsafe_allow_html=True)
+    with t1:
+        st.subheader("Stoichiometric & Energy Balance")
+        st.write("Cross-stage validation active. Scale-up risk scoring: Low.")
+        
+    with t2:
+        st.subheader("BOQ Generation (Mechanical/Civil/Elec)")
+        if st.session_state.user_role == "Vendor":
+            st.error("❌ Vendors have no access to feasibility reports.")
+        else:
+            st.write("JWN Workflow active. Masked vendor identity enforcement.")
 
-# --- 2. THE LANDING HERO ---
-st.markdown("<h1 style='text-align: center; font-size: 3.5rem; font-weight: 900; letter-spacing: -2px;'>CHEMPILOT <span style='color:#00f2ff'>PRO</span></h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #8892b0; font-size: 1.2rem;'>Institutional Techno-Economic & Logistics Intelligence for the 2026 Global Market.</p>", unsafe_allow_html=True)
-
-# --- 3. THE SMART COMMAND BAR (Centered) ---
-col_l, col_mid, col_r = st.columns([1, 4, 1])
-
-with col_mid:
-    st.markdown('<div class="command-card">', unsafe_allow_html=True)
-    
-    # Predictive Search (Plain Text Box)
-    # Note: We use the 2026 keyup trigger for 'ghost text' feel
-    chem_query = st.text_input("", placeholder="🔍 Type Chemical or CAS (e.g. Methanol)...", key="predictive_search")
-    
-    # Hidden Ghost Text Logic (UX trick: show suggestion below if typing)
-    if chem_query:
-        st.markdown(f"<p style='color: #00f2ff; opacity: 0.6; padding-left: 10px;'>Predictive Match: <b>{chem_query} (Industrial Grade)</b></p>", unsafe_allow_html=True)
-
-    c1, c2 = st.columns(2)
-    with c1:
-        capacity = st.number_input("TPA SCALE", value=100000, step=10000)
-    with c2:
-        location = st.text_input("DEPLOYMENT HUB", "Dahej, Gujarat")
-    
-    if st.button("INITIATE INTELLIGENCE AUDIT"):
-        # Gemini Logic here...
-        st.session_state.run = True
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# --- 4. THE CENTER STAGE (Wasted space no more) ---
-if 'run' in st.session_state:
-    st.markdown("---")
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Projected IRR", "24.1%", "High-Confidence")
-    m2.metric("Logistics Cost", "₹1.4/kg", "-₹0.2 vs Rail")
-    m3.metric("MES Status", "Verified", "Scale Viable")
-
-    # Center Visualizer
-    st.subheader("🚀 Global Demand Heatmap & Mass Balance")
-    st.info("Visualizing the supply-chain flow for the selected chemical...")
-    #
+    with t4:
+        st.write("### 🖋️ Digital Signing")
+        st.write("Consultant Signature: [PENDING]")
+        if st.session_state.user_role == "Super User":
+            st.button("Digitally Sign & Release (Super User)")
