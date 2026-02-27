@@ -1,74 +1,90 @@
 import streamlit as st
 import google.generativeai as genai
 
-# --- 1. THEME & GLASSMORPHISM CSS ---
-st.set_page_config(page_title="ChemPilot Pro | Global Intelligence", layout="wide")
+# --- 1. THE CINEMATIC UI ENGINE ---
+st.set_page_config(page_title="ChemPilot | Industrial Intelligence", layout="wide")
 
 st.markdown("""
     <style>
-    /* Full Page Dark Gradient */
-    .stApp { background: radial-gradient(circle at top, #1a1a2e, #16213e, #0f3460); color: #f0f2f6; }
+    /* Cinematic Background */
+    .stApp {
+        background: radial-gradient(circle at 50% 50%, #101827 0%, #000000 100%);
+        color: #FFFFFF;
+        font-family: 'Inter', sans-serif;
+    }
     
-    /* Hero Container for Inputs */
-    .hero-container {
+    /* Center Command Card */
+    .command-card {
         background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(20px);
         border: 1px solid rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(12px);
-        padding: 25px; border-radius: 20px;
-        margin-bottom: 30px;
+        border-radius: 24px;
+        padding: 40px;
+        margin-top: 50px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
     }
     
-    /* Center Stage Cards */
-    .center-card {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 15px; border-left: 5px solid #00f2ff;
-        padding: 20px; margin-bottom: 20px;
+    /* Clean Predictive Search Box */
+    .stTextInput input {
+        background-color: rgba(255,255,255,0.05) !important;
+        border: 1px solid rgba(255,255,255,0.2) !important;
+        color: #00f2ff !important;
+        font-size: 1.5rem !important;
+        padding: 20px !important;
+        border-radius: 12px !important;
     }
+    
+    /* High-Performance Execute Button */
+    .stButton > button {
+        background: linear-gradient(90deg, #00f2ff, #0066ff);
+        border: none; color: white;
+        padding: 20px 40px; border-radius: 12px;
+        font-weight: 800; width: 100%;
+        transition: 0.4s all;
+    }
+    .stButton > button:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0, 242, 255, 0.4); }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. THE HERO SECTION (Project Command) ---
-# Moving inputs from sidebar to the wide center-top for better UX
-with st.container():
-    st.markdown('<div class="hero-container">', unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([3, 2, 2])
+# --- 2. THE LANDING HERO ---
+st.markdown("<h1 style='text-align: center; font-size: 3.5rem; font-weight: 900; letter-spacing: -2px;'>CHEMPILOT <span style='color:#00f2ff'>PRO</span></h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #8892b0; font-size: 1.2rem;'>Institutional Techno-Economic & Logistics Intelligence for the 2026 Global Market.</p>", unsafe_allow_html=True)
+
+# --- 3. THE SMART COMMAND BAR (Centered) ---
+col_l, col_mid, col_r = st.columns([1, 4, 1])
+
+with col_mid:
+    st.markdown('<div class="command-card">', unsafe_allow_html=True)
     
-    with col1:
-        selected_chem = st.selectbox(
-            "Project Target (Chemical or CAS)",
-            options=["Ethanol (64-17-5)", "Methanol (67-56-1)", "Acetic Acid (64-19-7)"],
-            index=0, accept_new_options=True
-        )
-    with col2:
-        user_cap = st.number_input("Annual Scale (TPA)", value=100000, step=10000)
-    with col3:
-        exact_loc = st.text_input("Plant Location", "Dahej, Gujarat")
+    # Predictive Search (Plain Text Box)
+    # Note: We use the 2026 keyup trigger for 'ghost text' feel
+    chem_query = st.text_input("", placeholder="🔍 Type Chemical or CAS (e.g. Methanol)...", key="predictive_search")
     
-    run_audit = st.button("🚀 EXECUTE COMPREHENSIVE AUDIT", use_container_width=True)
+    # Hidden Ghost Text Logic (UX trick: show suggestion below if typing)
+    if chem_query:
+        st.markdown(f"<p style='color: #00f2ff; opacity: 0.6; padding-left: 10px;'>Predictive Match: <b>{chem_query} (Industrial Grade)</b></p>", unsafe_allow_html=True)
+
+    c1, c2 = st.columns(2)
+    with c1:
+        capacity = st.number_input("TPA SCALE", value=100000, step=10000)
+    with c2:
+        location = st.text_input("DEPLOYMENT HUB", "Dahej, Gujarat")
+    
+    if st.button("INITIATE INTELLIGENCE AUDIT"):
+        # Gemini Logic here...
+        st.session_state.run = True
+
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 3. THE CENTER STAGE (Data Display) ---
-if run_audit:
-    # Top Level Metrics in Glass Cards
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Projected ROI", "22.4%", "+2.1%")
-    m2.metric("Est. CAPEX", "₹480 Cr", "Fixed")
-    m3.metric("Payback", "3.8 Years", "-0.2 Yrs")
-    m4.metric("Market Sentiment", "Bullish", "High Demand")
+# --- 4. THE CENTER STAGE (Wasted space no more) ---
+if 'run' in st.session_state:
+    st.markdown("---")
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Projected IRR", "24.1%", "High-Confidence")
+    m2.metric("Logistics Cost", "₹1.4/kg", "-₹0.2 vs Rail")
+    m3.metric("MES Status", "Verified", "Scale Viable")
 
-    # The main "Wasted Space" is now a 2-column deep-dive
-    main_col, side_col = st.columns([2, 1])
-
-    with main_col:
-        st.markdown('<div class="center-card">', unsafe_allow_html=True)
-        st.subheader("🛠️ Technical Process Flow (2026 Standards)")
-        st.info("Visualizing reaction kinetics and mass balance for the target scale...")
-        # (This is where the Gemini Report or a PFD Image would go)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    with side_col:
-        st.markdown('<div class="center-card">', unsafe_allow_html=True)
-        st.subheader("📍 Logistics Intelligence")
-        st.write(f"Evaluating freight corridors from **{exact_loc}**.")
-        st.progress(85, text="Connectivity Score")
-        st.markdown('</div>', unsafe_allow_html=True)
+    # Center Visualizer
+    st.subheader("🚀 Global Demand Heatmap & Mass Balance")
+    st.info("Visualizing the supply-chain flow for the selected chemical...")
+    #
