@@ -1,6 +1,6 @@
 import streamlit as st
-from streamlit_searchbox import st_searchbox
 import google.generativeai as genai
+from streamlit_searchbox import st_searchbox
 import time
 
 # --- 1. SEARCH LOGIC (Predictive Typing) ---
@@ -106,6 +106,7 @@ if st.session_state.project["audit_report"]:
     st.markdown(st.session_state.project["audit_report"])
 else:
     st.info("👈 Enter project parameters in the sidebar to generate the Investment Audit.")
+
 
 
 
