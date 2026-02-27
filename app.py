@@ -1,75 +1,81 @@
 import streamlit as st
 import google.generativeai as genai
 import uuid
-from datetime import datetime
+import pandas as pd
 
-# --- 1. ACCESS & PRICING RULES (FROZEN v1) ---
-PHASES = {
-    "Phase 1: Conception & Feasibility": {"price": 0, "access": "Free"},
-    "Phase 2: Process Development (R&D)": {"price": 0, "access": "Free"},
-    "Phase 3: Conceptual Design": {"price": 25000, "access": "Paid"},
-    "Phase 4: FEED": {"price": 45000, "access": "Paid"},
-    "Phase 5: Detailed Engineering": {"price": 35000, "access": "Paid"},
-    "Phase 6-8: Commissioning/Ops": {"price": 50000, "access": "Paid"}
-}
+# --- 1. INITIALIZE GLOBAL STATE (Governance Spine) ---
+if 'project_data' not in st.session_state:
+    st.session_state.project_data = {
+        "current_phase": 1,
+        "inputs": {"chem": "", "cap": 0, "loc": "", "bud": 0},
+        "audit_trail": [],
+        "report_id": None
+    }
 
-# --- 2. GLOBAL UI & AUTH ---
-st.set_page_config(page_title="ChemPilot Pro | Governance Spine", layout="wide")
-
-if 'user_role' not in st.session_state:
-    st.session_state.user_role = "Normal User" # Options: Normal User, Consultant, Vendor, Super User
-
-# --- 3. DYNAMIC JOURNEY & PHASE LOGIC ---
-st.sidebar.title("🛡️ ChemPilot Governance")
-st.session_state.user_role = st.sidebar.selectbox("Access Mode", ["Normal User", "Consultant", "Vendor", "Super User"])
-
-selected_phase = st.sidebar.selectbox("Industry Phase", list(PHASES.keys()))
-phase_meta = PHASES[selected_phase]
-
-# --- 4. THE COMMAND CENTER (STAGING) ---
-st.markdown(f"### {selected_phase}")
-st.caption(f"Status: {phase_meta['access']} | Cost: ₹{phase_meta['price']:,}")
-
-# V1 ENGINE STACK: Integrated Inputs
-with st.container():
-    st.markdown('<div style="background:rgba(255,255,255,0.05); padding:30px; border-radius:15px;">', unsafe_allow_html=True)
-    c1, c2, c3, c4 = st.columns(4)
-    with c1: chem = st.text_input("CHEMICAL / CAS", placeholder="e.g. Methanol")
-    with c2: cap = st.number_input("SCALE (TPA)", value=100000)
-    with c3: loc = st.text_input("LOCATION", placeholder="e.g. Dahej")
-    with c4: bud = st.number_input("BUDGET (₹ Cr)", value=250)
+# --- 2. THE ENGINE STACK (Functional Logic) ---
+def run_technical_engine(phase, inputs):
+    """Executes frozen v1 engine logic based on the active phase."""
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    model = genai.GenerativeModel('gemini-2.0-flash')
     
-    # Validation & Reconciliation Trigger
-    if st.button("EXECUTE STAGE INTELLIGENCE"):
-        if "Paid" in phase_meta['access'] and st.session_state.user_role == "Normal User":
-            st.warning("💳 Phase 3+ requires mandatory registration and payment.")
-        else:
-            # Execute frozen engine logic
-            st.session_state.report_id = f"CP-{uuid.uuid4().hex[:8].upper()}"
-            st.success(f"Intelligence Generated. ID: {st.session_state.report_id}")
+    # Context-aware prompting based on v1 engine requirements
+    prompts = {
+        1: f"Market & Technical Feasibility for {inputs['chem']} at {inputs['cap']} TPA. Verify MES.",
+        2: f"Stoichiometric & Energy Balance for {inputs['chem']}. Identify scale-up risks.",
+        3: f"Conceptual Equipment Sizing & BOQ for {inputs['chem']} in {inputs['loc']}.",
+        4: f"FEED: Detailed Utility sizing (Steam/Power) and Logistics Network Optimization."
+    }
+    
+    try:
+        response = model.generate_content(prompts.get(phase, "General Audit"))
+        return response.text
+    except Exception as e:
+        return f"Engine Error: {str(e)}"
 
-# --- 5. REPORTING & WATERMARKING (v1 COMPLIANT) ---
-if 'report_id' in st.session_state:
-    st.divider()
-    st.markdown(f"#### 📄 ChemPilot Report: {st.session_state.report_id}")
-    st.info(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} (IST) | Governance: System-Governed")
-    
-    # The Technical Tabs (Stacked from previous version)
-    t1, t2, t3, t4 = st.tabs(["⚙️ Technical & Scale", "📊 BOQ & Vendor Match", "🏦 Banking & Liaison", "⚖️ Governance"])
-    
-    with t1:
-        st.subheader("Stoichiometric & Energy Balance")
-        st.write("Cross-stage validation active. Scale-up risk scoring: Low.")
+# --- 3. UI: THE PROJECT COMMAND CENTER ---
+st.set_page_config(page_title="ChemPilot v1 | Technical Governance", layout="wide")
+
+st.title("🚢 ChemPilot Pro")
+st.caption("Intelligence • Validation • Governance")
+
+# The Milestone Tracker (Functional)
+cols = st.columns(8)
+for i in range(1, 9):
+    label = "✅" if i < st.session_state.project_data["current_phase"] else "🔵" if i == st.session_state.project_data["current_phase"] else "⚪"
+    cols[i-1].markdown(f"**P{i}**\n{label}")
+
+st.divider()
+
+# --- 4. PHASE-GATE INPUTS ---
+curr_phase = st.session_state.project_data["current_phase"]
+
+if curr_phase <= 2:
+    st.subheader("Phase 1-2: Conception & R&D Intelligence (Free)")
+    with st.container():
+        c1, c2, c3, c4 = st.columns(4)
+        chem = c1.text_input("Chemical/CAS", value=st.session_state.project_data["inputs"]["chem"])
+        cap = c2.number_input("Scale (TPA)", value=st.session_state.project_data["inputs"]["cap"])
+        loc = c3.text_input("Location", value=st.session_state.project_data["inputs"]["loc"])
+        bud = c4.number_input("Budget (₹ Cr)", value=st.session_state.project_data["inputs"]["bud"])
+
+    if st.button("🚀 EXECUTE PHASE INTELLIGENCE"):
+        # Save Inputs
+        st.session_state.project_data["inputs"] = {"chem": chem, "cap": cap, "loc": loc, "bud": bud}
         
-    with t2:
-        st.subheader("BOQ Generation (Mechanical/Civil/Elec)")
-        if st.session_state.user_role == "Vendor":
-            st.error("❌ Vendors have no access to feasibility reports.")
-        else:
-            st.write("JWN Workflow active. Masked vendor identity enforcement.")
+        with st.status("Engaging v1 Engine Stack...", expanded=True) as status:
+            report = run_technical_engine(curr_phase, st.session_state.project_data["inputs"])
+            st.session_state.project_data["last_report"] = report
+            st.session_state.project_data["report_id"] = f"CP-{uuid.uuid4().hex[:6].upper()}"
+            status.update(label="Intelligence Validated", state="complete")
+        
+        st.rerun()
 
-    with t4:
-        st.write("### 🖋️ Digital Signing")
-        st.write("Consultant Signature: [PENDING]")
-        if st.session_state.user_role == "Super User":
-            st.button("Digitally Sign & Release (Super User)")
+# --- 5. THE GOVERNANCE OUTPUT ---
+if "last_report" in st.session_state.project_data:
+    st.markdown(f"### 📄 Report {st.session_state.project_data['report_id']}")
+    st.markdown(st.session_state.project_data["last_report"])
+    
+    # Technical Decision: Scale Up/Down?
+    if st.button("Accept Technical Findings & Move to Phase 3 (₹25,000)"):
+        st.session_state.project_data["current_phase"] = 3
+        st.rerun()
