@@ -1,6 +1,37 @@
 import streamlit as st
 import google.generativeai as genai
 import time
+import streamlit as st
+from streamlit_searchbox import st_searchbox
+
+# --- 1. SEARCH LOGIC (Predictive Typing) ---
+def chemical_lookup(searchterm: str):
+    # This function filters your database as the user types
+    # In 2026, you can even connect this to a live chemical API
+    base_options = ["Ethanol (64-17-5)", "Acetic Acid (64-19-7)", "Methanol (67-56-1)"]
+    if not searchterm:
+        return base_options
+    
+    # Simple fuzzy match: return options that contain the typed letters
+    return [opt for opt in base_options if searchterm.lower() in opt.lower()]
+
+# --- 2. THE UI ---
+st.title("🚢 ChemPilot Universal Search")
+
+# Plain text box with predictive suggestions
+selected_value = st_searchbox(
+    chemical_lookup,
+    key="chemical_search",
+    placeholder="Start typing chemical or CAS...",
+    label="Chemical / CAS Number"
+)
+
+# Handle the output
+if selected_value:
+    st.success(f"Targeting: {selected_value}")
+else:
+    # UX fallback: if nothing is selected from suggestions, use manual input
+    manual_input = st.text_input("Manual Override (if not in suggestions)")
 
 @st.cache_data(show_spinner=False)
 def run_audit_safe(chem, cap, loc):
@@ -76,4 +107,5 @@ if st.session_state.project["audit_report"]:
     st.markdown(st.session_state.project["audit_report"])
 else:
     st.info("👈 Enter project parameters in the sidebar to generate the Investment Audit.")
+
 
